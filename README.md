@@ -1,4 +1,5 @@
 # crabs_macroecology
+Code, outputs and figures related to the crabs biodiversity synthesis and macroecology project
 
 ## functions
 R functions created to clean the OBIS and GBIF occurrence data points
