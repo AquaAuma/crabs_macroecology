@@ -137,7 +137,7 @@ worms2 <- worms2 %>%
 worms2 <- worms2[order(worms2$class,worms2$order,worms2$family,worms2$genus,worms2$species, worms2$subspecies),]
 
 # 5827 species/subspecies!
-write.csv(worms2, file=paste('outputs_MOL/real/BRACHYURANS_MASTERLIST_SUBSPE_',date,'.csv', sep=''), row.names=FALSE)
+write.csv(worms2, file=paste('outputs/taxonomy/real/BRACHYURANS_MASTERLIST_SUBSPE_',date,'.csv', sep=''), row.names=FALSE)
 
 
 ################################################
@@ -154,10 +154,10 @@ temp <- taxize::synonyms(splist,
 mylist <- synonyms_df(temp)
 
 # Write file with synonyms since it takes a long time to compile them!!
-save(mylist, file="outputs_MOL/real/synonyms.RData")
+save(mylist, file="outputs/taxonomy/real/synonyms.RData")
 
 # Finalize the synonym file
-load(file="outputs_MOL/real/synonyms.RData")
+load(file="outputs/taxonomy/real/synonyms.RData")
 
 unique(mylist$match_type) # good
 
@@ -194,7 +194,7 @@ synonyms <- mylist %>%
 
 
 # save synonym file
-write.csv2(synonyms, file=paste("outputs_MOL/real/BRACHYURANS_SYNONYMS_SUBSPE_",date,".csv", sep=""), quote=FALSE, row.names=TRUE)
+write.csv2(synonyms, file=paste("outputs/taxonomy/real/BRACHYURANS_SYNONYMS_SUBSPE_",date,".csv", sep=""), quote=FALSE, row.names=TRUE)
 
 
 ################################################
@@ -235,7 +235,7 @@ for(i in 1:nrow(master)){
 
 master <- master %>% rename(canonical = ScientificName)
 # save master file
-write.csv(master, file=paste("outputs_MOL/real/BRACHYURANS_MASTER_",date,".csv", sep=""), na="NA", row.names=FALSE)
+write.csv(master, file=paste("outputs/taxonomy/real/BRACHYURANS_MASTER_",date,".csv", sep=""), na="NA", row.names=FALSE)
 
 
 ### check subgenera effect
@@ -249,7 +249,7 @@ dim(xx) # ok! no duplicated names with different AphiaID codes
 ### D. Synonyms from Sealifebase
 ################################################
 
-master <- read.csv("outputs_MOL/real/BRACHYURANS_MASTER_28MAR2022.csv")
+master <- read.csv("outputs/taxonomy/real/BRACHYURANS_MASTER_28MAR2022.csv")
 
 master_accepted <- master %>% filter(accid==0) # 5827
 
@@ -263,7 +263,7 @@ slb_syn <- rfishbase::synonyms(species_list = master_accepted$canonical,
 ################################################
 ### E. Synonyms from GBIF
 ################################################
-master <- read.csv("outputs_MOL/real/BRACHYURANS_MASTER_28MAR2022.csv")
+master <- read.csv("outputs/taxonomy/real/BRACHYURANS_MASTER_28MAR2022.csv")
 master_accepted <- master %>% filter(accid==0) # 5827
 master_syn <- master %>% filter(accid>0) # 5757
 
@@ -425,7 +425,7 @@ gbif_dirty_names <- gbif_dirty_names %>%
          Species = specificEpithet_gbif,
          SubSpecies = infraspecificEpithet_gbif)
 
-write.csv(gbif_dirty_names, file = paste0("outputs_MOL/real/dirty_names_gbif_AU_",date,".csv"),
+write.csv(gbif_dirty_names, file = paste0("outputs/taxonomy/real/dirty_names_gbif_AU_",date,".csv"),
           row.names=FALSE)
 
 
@@ -433,9 +433,9 @@ write.csv(gbif_dirty_names, file = paste0("outputs_MOL/real/dirty_names_gbif_AU_
 ### F. Integrate the GBIF synonyms in mastertaxo
 ################################################
 
-master <- read.csv("outputs_MOL/real/BRACHYURANS_MASTER_28MAR2022.csv")
+master <- read.csv("outputs/taxonomy/real/BRACHYURANS_MASTER_28MAR2022.csv")
 
-gbif_syn <- read.csv("outputs_MOL/real/dirty_names_gbif_au_28mar2022_matched.csv")%>% 
+gbif_syn <- read.csv("outputs/taxonomy/real/dirty_names_gbif_au_28mar2022_matched.csv")%>% 
   filter(reason_included %in% c("misspelling", "synonym")) %>% 
   rename(taxonomicStatus = "Taxon.status",
          canonical = `ScientificName.1`) %>% 
@@ -481,7 +481,7 @@ for(i in s:nrow(master_gbif)){
 
 
 # save master file
-write.csv(master_gbif, file=paste("outputs_MOL/real/BRACHYURANS_MASTER_GBIF_",date,".csv", sep=""), na="NA", row.names=FALSE)
+write.csv(master_gbif, file=paste("outputs/taxonomy/real/BRACHYURANS_MASTER_GBIF_",date,".csv", sep=""), na="NA", row.names=FALSE)
 
 
 
@@ -489,7 +489,7 @@ write.csv(master_gbif, file=paste("outputs_MOL/real/BRACHYURANS_MASTER_GBIF_",da
 ### G. Synonyms from OBIS
 ################################################
 
-master <- read.csv("outputs_MOL/real/BRACHYURANS_MASTER_28MAR2022.csv")
+master <- read.csv("outputs/taxonomy/real/BRACHYURANS_MASTER_28MAR2022.csv")
 master_accepted <- master %>% filter(accid==0) # 5827
 master_syn <- master %>% filter(accid>0) # 5757
 
@@ -557,7 +557,7 @@ aphia_obis <- obis_raw2 %>%
 obis_unmatched <- anti_join(aphia_obis, master, by="AphiaID")
 
 # save the unmatched names
-write.csv2(obis_unmatched, file = paste0("outputs_MOL/real/unmatched_aphia_obis_",date,".csv"),
+write.csv2(obis_unmatched, file = paste0("outputs/taxonomy/real/unmatched_aphia_obis_",date,".csv"),
            row.names=FALSE)
 
 
@@ -572,13 +572,13 @@ obis_unmatched <- anti_join(names_obis, master, by="canonical")
 
 #anti join obis and gbif synonyms
 
-unmatched_obis <- read_csv("outputs_MOL/real/unmatched_aphia_obis_03may2022_matched.csv")
+unmatched_obis <- read_csv("outputs/taxonomy/real/unmatched_aphia_obis_03may2022_matched.csv")
 
-unmatched_gbif <- read_csv("outputs_MOL/real/dirty_names_gbif_au_28mar2022_matched.csv")
+unmatched_gbif <- read_csv("outputs/taxonomy/real/dirty_names_gbif_au_28mar2022_matched.csv")
 
 potent_obis_unmatched <- anti_join(unmatched_obis, unmatched_gbif, by="AphiaID")
 
-write.csv(potent_obis_unmatched, file = paste0("outputs_MOL/real/unmatched_aphia_gbif_obis_",date,".csv"),
+write.csv(potent_obis_unmatched, file = paste0("outputs/taxonomy/real/unmatched_aphia_gbif_obis_",date,".csv"),
           row.names=FALSE)
 
 ##############################################################################################################
@@ -673,7 +673,7 @@ worms2 <- worms %>%
 worms2 <- worms2[order(worms2$class,worms2$order,worms2$family,worms2$genus,worms2$species, worms2$subspecies),]
 
 # 3,095 species/subspecies!
-write.csv(worms2, file=paste('outputs_MOL/wannabe/ANOMURANS_MASTERLIST_SUBSPE_',date,'.csv', sep=''), row.names=FALSE)
+write.csv(worms2, file=paste('outputs/taxonomy/wannabe/ANOMURANS_MASTERLIST_SUBSPE_',date,'.csv', sep=''), row.names=FALSE)
 
 
 ################################################
@@ -690,10 +690,10 @@ temp <- taxize::synonyms(splist,
 mylist <- synonyms_df(temp)
 
 # Write file with synonyms since it takes a long time to compile them!!
-save(mylist, file="outputs_MOL/wannabe/synonyms.RData")
+save(mylist, file="outputs/taxonomy/wannabe/synonyms.RData")
 
 # Finalize the synonym file
-load(file="outputs_MOL/wannabe/synonyms.RData")
+load(file="outputs/taxonomy/wannabe/synonyms.RData")
 unique(mylist$match_type) # good
 unique(mylist$status) # only unaccepted names
 
@@ -726,7 +726,7 @@ synonyms <- mylist %>%
          authorship, source, valid_AphiaID)
 
 # save synonym file
-write.csv2(synonyms, file=paste("outputs_MOL/wannabe/ANOMURANS_SYNONYMS_SUBSPE_",date,".csv", sep=""), quote=FALSE, row.names=TRUE)
+write.csv2(synonyms, file=paste("outputs/taxonomy/wannabe/ANOMURANS_SYNONYMS_SUBSPE_",date,".csv", sep=""), quote=FALSE, row.names=TRUE)
 
 
 ################################################
@@ -765,7 +765,7 @@ for(i in 1:nrow(master)){
 
 master <- master %>% rename(canonical = ScientificName)
 # save master file
-write.csv(master, file=paste("outputs_MOL/wannabe/ANOMURANS_MASTER_",date,".csv", sep=""), na="NA", row.names=FALSE)
+write.csv(master, file=paste("outputs/taxonomy/wannabe/ANOMURANS_MASTER_",date,".csv", sep=""), na="NA", row.names=FALSE)
 
 
 
@@ -781,7 +781,7 @@ dim(xx) # ok! no duplicated names with different AphiaID codes
 ### E. Synonyms from GBIF
 ################################################
 
-master <- read.csv("outputs_MOL/wannabe/ANOMURANS_MASTER_29APR2022.csv")
+master <- read.csv("outputs/taxonomy/wannabe/ANOMURANS_MASTER_29APR2022.csv")
 master_accepted <- master %>% filter(accid==0) # 3191
 master_syn <- master %>% filter(accid>0) # 1754
 
@@ -877,7 +877,7 @@ gbif_dirty_names <- gbif_dirty_names %>%
          Species = specificEpithet_gbif,
          SubSpecies = infraspecificEpithet_gbif)
 
-write.csv(gbif_dirty_names, file = paste0("outputs_MOL/wannabe/dirty_names_gbif_",date,".csv"),
+write.csv(gbif_dirty_names, file = paste0("outputs/taxonomy/wannabe/dirty_names_gbif_",date,".csv"),
           row.names=FALSE)
 
 
@@ -885,9 +885,9 @@ write.csv(gbif_dirty_names, file = paste0("outputs_MOL/wannabe/dirty_names_gbif_
 ### F. Integrate the GBIF synonyms in mastertaxo
 ################################################
 
-master <- read.csv("outputs_MOL/wannabe/ANOMURANS_MASTER_29APR2022.csv")
+master <- read.csv("outputs/taxonomy/wannabe/ANOMURANS_MASTER_29APR2022.csv")
 
-gbif_syn <- read.csv("outputs_MOL/wannabe/dirty_names_gbif_29apr2022_matched.csv") %>% 
+gbif_syn <- read.csv("outputs/taxonomy/wannabe/dirty_names_gbif_29apr2022_matched.csv") %>% 
   filter(reason_included %in% c("misspelling", "synonym")) %>% 
   rename(taxonomicStatus = "Taxon.status",
          canonical = "ScientificName") %>% 
@@ -935,7 +935,7 @@ for(i in s:nrow(master_gbif)){
 
 
 # save master file
-write.csv(master_gbif, file=paste("outputs_MOL/wannabe/ANOMURANS_MASTER_GBIF_",date,".csv", sep=""), na="NA", row.names=FALSE)
+write.csv(master_gbif, file=paste("outputs/taxonomy/wannabe/ANOMURANS_MASTER_GBIF_",date,".csv", sep=""), na="NA", row.names=FALSE)
 
 
 
@@ -943,7 +943,7 @@ write.csv(master_gbif, file=paste("outputs_MOL/wannabe/ANOMURANS_MASTER_GBIF_",d
 ### G. Synonyms from OBIS
 ################################################
 
-master <- read.csv("outputs_MOL/wannabe/ANOMURANS_MASTER_29APR2022.csv")
+master <- read.csv("outputs/taxonomy/wannabe/ANOMURANS_MASTER_29APR2022.csv")
 master_accepted <- master %>% filter(accid==0) # 3191
 master_syn <- master %>% filter(accid>0) # 1754
 
@@ -1013,7 +1013,7 @@ aphia_obis <- aphia_obis %>% mutate(AphiaID = as.character(AphiaID))
 obis_unmatched <- anti_join(aphia_obis, master, by="AphiaID")
 
 # save the unmatched names
-write.csv2(obis_unmatched, file = paste0("outputs_MOL/wannabe/unmatched_aphia_obis_",date,".csv"),
+write.csv2(obis_unmatched, file = paste0("outputs/taxonomy/wannabe/unmatched_aphia_obis_",date,".csv"),
            row.names=FALSE)
 
 
