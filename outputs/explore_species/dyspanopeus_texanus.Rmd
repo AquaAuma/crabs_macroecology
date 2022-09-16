@@ -1,0 +1,199 @@
+---
+title: "explore_species"
+author: "Aurore A. Maureaud"
+date: '2022'
+output:
+  html_document: 
+    toc: true
+    theme: flatly
+  word_document: default
+  pdf_document: default
+---
+
+Exploring the flags and processing methods on several crab species, here:
+
+```{r species, echo=FALSE}
+spp <- "Dyspanopeus texanus"
+print(spp)
+```
+
+```{r setup, include=FALSE, results='hide'}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+library(sf)
+library(tidyverse)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+world <- ne_countries(scale = "medium", returnclass = "sf")
+library(egg)
+library(raster)
+sf::sf_use_s2(FALSE)
+library(RColorBrewer)
+library(units)
+library(rfishbase)
+library(readxl)
+
+# load occ data for crabs
+dat_occ_nf <- get(load("~/Yale University/MOL-inverts/TaxToSDM/outputs_MOL/crabs/DAT_OCC_CRABS_9JUN2021.RData"))
+
+# load bpow layer
+bpow <- st_read("~/Yale University/Marine Biogeography/bpow/outputs/bpow/bpow_p8s5_abyssal_corr.shp")
+
+# identify duplicated data via sources
+# even with this procedure, 21 duplicates remain because of different catalog numbers
+# don't know if they then should be considered separate or not
+dups <- dat_occ_crabs %>% 
+  filter(duplicated(occ_id)) %>% 
+  dplyr::select(occ_id) %>% pull()
+
+dat_occ_crabs <- dat_occ_crabs %>% 
+  filter(!(occ_id %in% dups & source == "OBIS"),
+         !(occ_id %in% dups & source == "GBIF")) %>% 
+  distinct()
+rm(dups)
+
+# fao fishing areas
+fao <- st_read("~/Yale University/Marine Biogeography/regions_base/fao/World_Fao_Zones.shp")
+
+# load traits
+traits <- read.csv("~/Yale University/MOL-inverts/TaxToSDM/outputs_MOL/crabs/traits/master_traits_22JUL2021.csv")
+high_traits <- read.csv("~/Yale University/MOL-inverts/TaxToSDM/outputs_MOL/crabs/traits/high_traits_22JUL2021.csv")
+
+# FAO areas and species
+fao_slb <- read_excel("~/Yale University/Crabs/SLB_FAO.xlsx")
+
+```
+
+## 1. No filter
+
+Occurrence points based on the raw occurrence data from OBIS and GBIF, with no filtering, but after the OBIS-GBIF deduplication methods applied.
+
+```{r step 1, echo = FALSE}
+
+  dat_spp <- dat_occ_crabs %>% 
+    filter(accepted_name == spp)
+ 
+  st_as_sf(dat_spp, coords = c("longitude","latitude"), crs = st_crs(world)) %>% 
+    ggplot() + geom_sf(shape = 3) +
+    geom_sf(data = world, fill = "brown", alpha = 0.4, color = NA) +
+    theme_bw() +
+    ggtitle(paste0(length(unique(dat_spp$occ_id)), " points, ", spp))
+```
+
+## 2. Occurrence filters
+
+Occurrence spatial points are filtered based on flags of sveeral categories:
+
+- missing year
+- problem with coordinate (0 island or missing)
+- removing the points with high coordinates uncertainty
+- remove on land points
+
+```{r step 2, echo = FALSE}
+
+  dat_spp_2 <- dat_spp %>% 
+    filter(is.na(flag_year),
+         is.na(flag_coordinate),
+         flag_coord_uncertainty %in% c("NA","missing_uncertainty"),
+         #is.na(flag_outlier),
+         is.na(flag_realm)
+         )
+ 
+  st_as_sf(dat_spp_2, coords = c("longitude","latitude"), crs = st_crs(world)) %>% 
+    ggplot() + geom_sf(shape = 3) +
+    geom_sf(data = world, fill = "brown", alpha = 0.4, color = NA) +
+    theme_bw() +
+    ggtitle(paste0(length(unique(dat_spp_2$occ_id)), " points, ", spp))
+  
+```
+
+## 3. Habitat information and BPOW
+
+The depth range expected of the species is used to check the bathymetric groups in which the species is found:
+
+- we used the depth range of the species from SeaLifeBase species profiles
+- we translated that depth range into broad bathymetric categories used in the BPOW biogeographic regionalization layer:
+
+1. 0-800m: coastal and upper bathyal
+2. 800-3,500m: bathyal
+3. 3,500-6,500m: abyssal
+4. 6,500m: hadal trenches
+
+- we compared to the two
+
+```{r habitat, echo=FALSE}
+i <- which(traits$canonical == spp)
+
+# deduct bathymetric group(s)
+groups_spp <- c("coastal", "bathyal","abyssal","hadal")
+if(traits$depth_range_shallow[i]>800){groups_spp[1] <- NA}
+if(traits$depth_range_deep[i]<6500){groups_spp[4] <- NA}
+if(traits$depth_range_deep[i]<3500){groups_spp[3] <- NA} 
+if(traits$depth_range_deep[i]<800){groups_spp[2] <- NA}
+groups_spp <- groups_spp[!is.na(groups_spp)]
+print(paste0("depth range: ", traits$depth_range_shallow[i],"-",traits$depth_range_deep[i]))
+print(paste0("bathymetric groups: ", groups_spp))
+
+```
+
+```{r bpow, echo=FALSE}
+
+dat_spp_3 <- st_as_sf(dat_spp_2, coords = c("longitude","latitude"), crs = st_crs(world))
+bpow_spp <- st_join(dat_spp_3, bpow, left=TRUE, largest=FALSE) %>% 
+  st_drop_geometry() %>% 
+  dplyr::select(ID) %>% 
+  distinct() %>% 
+  pull()
+
+bpow <- bpow %>% 
+  mutate(occ = ifelse(ID %in% bpow_spp, TRUE, FALSE),
+         slb = ifelse(type %in% groups_spp, TRUE, FALSE),
+         slb_occ = ifelse(slb ==TRUE & occ == TRUE, "SLB & Occurrences",
+                          NA_character_),
+         slb_occ = ifelse(slb=="TRUE" & occ=="FALSE", "SLB", slb_occ),
+         slb_occ = ifelse(slb=="FALSE" & occ=="TRUE", "Occurrences", slb_occ))
+
+bpow %>% filter(!is.na(slb_occ)) %>% ggplot() + geom_sf(aes(fill = slb_occ), alpha= 0.4) +
+  scale_fill_manual(values = c("forestgreen","blue","yellow"),
+                    breaks = c("SLB & Occurrences","SLB","Occurrences")) +
+  geom_sf(data = world, fill = "brown", alpha = 0.4) +
+  geom_sf(data = dat_spp_3, shape =3) +
+  ggtitle("Observation versus Expert knowledge for BPOW")
+
+```
+
+## 4. FAO zone presence
+
+The fishing FAO areas are used to incidate the expected presence of the species in several sub-ocean areas:
+
+- the reference used is the list of FAO areas from SeaLifeBase species profiles
+- the FAO shapefile is used to indicate the FAO areas in which the species is found based on the occurrence spatial points
+- the two are compared
+
+```{r step fao, echo=FALSE, warning=FALSE}
+fao_spp <- fao_slb %>% 
+  mutate(canonical = paste(Genus, Species, sep=" ")) %>% 
+  filter(canonical == spp) %>% 
+  dplyr::select(AreaCode) %>% 
+  pull()
+
+dat_spp_fao <- st_join(dat_spp_3, fao, left=TRUE, largest=FALSE)
+dat_spp_fao <- unique(dat_spp_fao$zone)
+
+fao <- fao %>% 
+  mutate(slb = ifelse(zone %in% fao_spp, TRUE, FALSE),
+         occ = ifelse(zone %in% dat_spp_fao, TRUE, FALSE),
+         slb_occ = ifelse(slb=="TRUE" & occ =="TRUE", "SLB & Occurrences", NA_character_),
+         slb_occ = ifelse(slb=="TRUE" & occ=="FALSE", "SLB", slb_occ),
+         slb_occ = ifelse(slb=="FALSE" & occ=="TRUE", "Occurrences", slb_occ))
+
+fao %>% filter(!is.na(slb_occ)) %>% ggplot() + geom_sf(aes(fill = slb_occ), alpha= 0.4) +
+  scale_fill_manual(values = c("forestgreen","blue","yellow"),
+                    breaks = c("SLB & Occurrences","SLB","Occurrences")) +
+  geom_sf(data = world, fill = "brown", alpha = 0.4) +
+  geom_sf(data = dat_spp_3, shape =3) +
+  ggtitle("Observation versus Expert knowledge for FAO zones")
+
+```
+
