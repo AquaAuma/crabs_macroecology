@@ -13,7 +13,7 @@ output:
 Exploring the flags and processing methods on several crab species, here:
 
 ```{r species, echo=FALSE}
-spp <- "Munidopsis subsquamosa"
+spp <- "Callinectes sapidus"
 print(spp)
 ```
 
@@ -129,7 +129,7 @@ i <- which(traits$canonical == spp)
 groups_spp <- c("coastal", "bathyal","abyssal","hadal")
 if(traits$depth_range_shallow[i]>800){groups_spp[1] <- NA}
 if(traits$depth_range_deep[i]<6500){groups_spp[4] <- NA}
-if(traits$depth_range_deep[i]<3500){group_spp[3] <- NA} 
+if(traits$depth_range_deep[i]<3500){groups_spp[3] <- NA} 
 if(traits$depth_range_deep[i]<800){groups_spp[2] <- NA}
 groups_spp <- groups_spp[!is.na(groups_spp)]
 print(paste0("depth range: ", traits$depth_range_shallow[i],"-",traits$depth_range_deep[i]))
